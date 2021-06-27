@@ -1,0 +1,153 @@
+---
+title: "STAC33 Assignment 10"
+author: Hyebeen Jung, 1004346512
+output: html_notebook
+---
+\
+
+These are the packages I need for this assignment.  
+```{r, messsage = FALSE, error = FALSE}
+library(tidyverse)
+library(lubridate)
+```
+\
+
+### 1. A Student's Sleep Time  
+\
+
+**a) Reading and Displaying Data File**  
+Since the given file is in .csv format, I use the read_csv function.  
+I defined the link into a variable first, rather than reading in directly from the URL.  
+The data `sleep` is created and displayed below.  
+
+```{r}
+my_url <- "http://ritsokiguess.site/STAC33/sleeping.csv"
+sleep <- read_csv(my_url)
+sleep
+```
+There are seven rows and three columns.  
+The _bed.time_ and _rise.time_ are both _POSIXct_ data type which stores dates and times.  
+The _sleep.time_ hold numeric values with decimal points (dbl means double).  
+\
+
+**b) Number of Hours Student Was In Bed**  
+
+First, I am going to create another column that contains the time student was in bed.  
+Then, I change that data type into numerical values and save it in another column.  
+The mutated dataframe `sleep` is displayed below.  
+```{r}
+sleep %>% mutate(
+  in.bed = (rise.time - bed.time),
+  in.bed.hours = as.numeric(in.bed)
+  ) -> sleep
+sleep
+```
+There are seven rows and five columns.  
+There are two new columns that contain fractional number of hours that the student was in bed.  
+THe _in.bed_ column contains time data type, and _in.bed.hours_ contains numerical value.  
+\
+
+**c) Sleep Efficiency of Each Night**  
+
+I decided to label each night as numbers first.  
+Then, I calculated sleep efficiency by dividing the sleep time by time in bed.  
+I stored those values in a new column and mutated to `sleep` data frame.  
+I have displayed the nights with sleep efficiency and arranged in descending order.  
+```{r}
+sleep %>% mutate(
+  night = (1:7),
+  sleep.efc = sleep.time / in.bed.hours
+) -> sleep
+sleep %>% select(night, sleep.efc) %>% arrange(desc(sleep.efc))
+```
+There are seven rows and two columns.  
+I can conclude that on the 7th night, the sleep efficiency was the highest.  
+The highest sleep efficiency was about 93.73%.  
+\
+
+**d) Displaying Time Spent In Bed**  
+
+I selected the columns I need which is _in.bed_ and _in.bed.hours_ column from `sleep`.  
+Then, using mutate(), I have calculated the time in bed in minutes and seconds.  
+I have stored them in each columns and they are displayed below.  
+```{r}
+sleep %>% select(in.bed, in.bed.hours) %>%
+  mutate(
+    in.bed.minutes = (in.bed / dminutes(1)),
+    in.bed.seconds = (in.bed / dseconds(1))
+    )
+```
+There are seven rows and four columns.  
+I can see the time in bed in hours, minutes, and seconds.  
+\
+
+**e) Graphing Time Went To Bed**
+
+I decided to plot it as a scatterplot with lines.  
+I have observed that the time that this student goes to bed fluctuates time to time.  
+```{r}
+# select the columns I need, and save to new data frame
+sleep %>% select(bed.time, night) -> bedtime
+# extract hours, minutes, seconds, and convert all to seconds
+bedtime %>% mutate(
+  hour = abs(hour(bed.time) - 12),
+  minute = minute(bed.time),
+  second = second(bed.time),
+  time = second + (minute*60) + hour*60*60) -> bedtime
+# adding title to the graph
+t1 = "Time Went to Bed On Each Night"
+# plotting scatterplot
+ggplot(bedtime, aes(x = night, y = time)) + geom_point() + geom_line() +
+  ggtitle(t1)
+```
+\
+
+### 2. The Least Squares Estimates  
+\
+
+**a) Reading and Displaying Data File**  
+
+Since the given file is in .csv format, I use the read_csv function.  
+I defined the link into a variable first, rather than reading in directly from the URL.  
+The data `sleep` is created and displayed below.  
+
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/heightfoot.csv"
+hf <- read_csv(my_url)
+hf
+```
+There are 33 rows and 2 columns.  
+\
+
+**b) Calculating The Least Squares Estimates**  
+
+I have wrote comments within the code for easier understanding.  
+I have calculated transpose of X prior to complicated calculation.  
+```{r}
+# X with column with 1s and columns with explanatory variable
+X <- cbind(1, hf$foot)
+# response variable vector
+y <- hf$height
+# transpose of X
+Xt <- t(X)
+# calculating least square estimates
+lse <- solve(Xt %*% X) %*% Xt %*% y
+# output
+lse
+```
+The output shows that the intercept is at 34.3363 and the slope is 1.3591.  
+\
+
+**c) Comparing With Regression Analysis**  
+
+The explanatory variable is _height_ and the response variable is _foot_.  
+Hence, I run a height ~ foot linear regression, with the data frame `hf`.  
+The summary of the regression is displayed below.  
+
+```{r}
+height.1 <- lm(height ~ foot, data = hf)
+summary(height.1)
+```
+The intercept is 34.3363 and the slope is 1.3591.  
+This matches the least squares estimates I've calculated, hence, my calculation is verified.  
+\
