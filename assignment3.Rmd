@@ -1,0 +1,163 @@
+---
+title: "STAC33 Assignment 3"
+output: html_notebook
+---
+\
+
+I will be using the packages called `tidyverse`, `devtools`, and `smmr`.  
+```{r, message=FALSE}
+library(tidyverse)
+library(devtools)
+library(smmr)
+```
+\
+
+### 1. Population  
+
+**a) Reading in Data and Displaying**  
+The given data set is a csv file, so I use the read_csv function.  
+I defined the link into a variable first, rather than reading in directly from the URL.  
+The data set `pop` is created and displayed below.  
+```{r}
+url <- "http://ritsokiguess.site/STAC32/pop.csv"
+pop <- read_csv(url)
+pop
+```
+There are 10000 rows and a single column.  
+\
+
+**b) Histogram: Population**  
+Since there is one quantitative variable in the data, which is the _v_ column, I use the histogram to plot the data.  
+Since the data set `pop` has 10000 rows, the sample size is 10000. I find the next power of 2 above that, which is $2^{14} = 16384$.  
+Then, I take the exponent and add 1 to arrive at getting 15 bins.  
+```{r}
+ggplot(pop, aes(x = v)) + geom_histogram(bins = 15)
+```
+The distribution is skewed to the right.  
+\
+
+**c) Performing _t_-Test on 10 Samples**  
+First, I must find the SD value and the mean from the given data.  
+```{r}
+pop %>% summarize(m=mean(v), s=sd(v))
+```
+The data shows that the mean is 5, and the standard deviation is approximately 3.17.  
+\
+
+Now, I set the seed to the last five digits of my student number.  
+With the obtained information from above and from the question, I perform a sample t-test.  
+```{r}
+set.seed(46512)
+x <- rnorm(10, 5, 3.17)
+t.test(x, mu = 4)
+```
+From this test, I can see that the p-value is bigger than 0.05, hence it fails to reject the null hypothesis of $\mu = 4$.  
+\
+
+To see how likely I am to (correctly) reject the null hypothesis, I need to look for the power.  
+```{r}
+set.seed(46512)
+rerun(1000, rnorm(10, 5, 3.17)) %>%
+  map( ~ t.test(., mu = 4)) %>%
+  map_dbl("p.value") %>% 
+  enframe(value="pvals") %>% 
+  count(pvals <= 0.05)
+```
+Note that I must always set the seed in the beginning.  
+If I were to look at the probability of rejecting the null, I would look at the _TRUE_ count.  
+From this code, I can see the _TRUE_ count is 159 hence the power is about 16%.   
+This means that I can only reject the null hypothesis for 159 times out of 1000.  
+Hence, I am very unlikely to reject the null of 4 for my mean of 5.  
+\
+
+**d) Performing _t_-Test on 50 Samples**  
+I only modify the first parameter of _rnorm_ to 50.  
+I would expect that I would reject the null hypothesis in this case because the sample size increased.  
+```{r}
+set.seed(46512)
+x <- rnorm(50, 5, 3.17)
+t.test(x, mu = 4)
+```
+The result is as expected.  
+Since the p-value is very small, I can correctly reject the null hypothesis.  
+\
+
+**e) Performing _t_-Test on 10 Samples with Different Sample Mean**  
+In this case, I only modify the sample mean value to 5.  
+```{r}
+set.seed(46512)
+x <- rnorm(10, 5, 3.17)
+t.test(x, mu = 5)
+```
+
+```{r}
+set.seed(46512)
+rerun(1000, rnorm(10, 5, 3.17)) %>%
+  map( ~ t.test(., mu = 5)) %>%
+  map_dbl("p.value") %>% 
+  enframe(value="pvals") %>% 
+  count(pvals <= 0.05)
+```
+This is unexpected. This shows that the probability that the null hypothesis will be rejected is only about 5%.  
+I actually predicted that the p-value would also be small since my population mean and the sample mean is identical and hence reject the null hypothesis. However, the p-value is larger than expected, and I fail to reject the null.  
+This is because when the population mean and the sample mean are equivalent, that means the null hypothesis is actually true, hence the probability of rejecting would be 0.05. Also, with smaller sample sizes, I have less chances of correctly rejecting.  
+\
+
+### 2. Diet Meal  
+
+**a) Reading in Data and Displaying**  
+The given data set is a text file.  
+When I open it, I see that there is only one column of data, hence I can use any delimiter I like.  
+I defined the link into a variable first, rather than reading in directly from the URL.  
+The data set `prot` is created and displayed below.  
+```{r}
+url <- "http://ritsokiguess.site/STAC33/protein.txt"
+prot <- read_delim(url, " ")
+prot
+```
+There are 20 rows and a single column.  
+\
+
+**b) Histogram: Protein Content in Prepacked Diet Meals**  
+Since there is one quantitative variable in the data, which is the _protein_ column, I use the histogram to plot the data.  
+Since the data set `prot` has 20 rows, the sample size is 20. I find the next power of 2 above that, which is $2^{5} = 32$.  
+Then, I take the exponent and add 1 to arrive at getting 6 bins.  
+```{r}
+ggplot(prot, aes(x = protein)) + geom_histogram(bins = 6)
+```
+The distribution is skewed to the left.  
+\
+
+**c) Why Sign Test?**  
+The distribution non-normal as mentioned above. Hence, I should be concerned about using the _t_-test.  
+In this case, I should actually be thinking about the median instead of mean.  
+The question also explicitly hinted that the "average" means the measure of the center, which is the median.  
+This is where the sign test should come in play.  
+\
+
+**d) Running Sign Test**  
+The sign test takes in three parameters, the data, column name to test the median from, and the null median.  
+In this case, the null median is 6, since I am concerned with whether the prepacked diet meals contain 6 ounces of protein or not.  
+```{r}
+sign_test(prot, protein, 6)
+```
+I can observe two things from this test.  
+First thing, there are 15 prepacked diet meals that contains below 6 ounces of protein per package, and 5 above.  
+Second thing, since we were testing whether the protein inside the diet meal was different from 6 ounces, the two-sided hypothesis helps me to arrive at a conclusion.  
+When I look at the _two-sided_ alternative row, I can see that the p-value is 0.0414, which is smaller than 0.05, so I can reject my null hypothesis.  
+In turn, I can conclude that the protein per package is inaccurate.  
+\
+
+**e) Making an Inference about P-Value**  
+In the previous question, with the sign test, I have observed that there were lot more values below than values above my null median.  
+From this, I was already able expect that the protein advertisement is inaccurate.  
+This is significant enough to predict that the p-value would be very small.  
+\
+
+**f) 90% Confidence Interval**  
+```{r}
+ci_median(prot, protein, conf.level = 0.90)
+```
+The 90% confidence interval for the population median protein content is (4.9053, 5.7938).  
+Notice that my null median is 6, which outside the interval.  
+Hence, I can reject my null hypothesis and also conclude that the protein content is inaccurate.  

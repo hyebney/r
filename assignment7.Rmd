@@ -1,0 +1,152 @@
+---
+title: "STAC33 Assignment 7"
+author: Hyebeen Jung, 1004346512
+output: html_notebook
+---
+\
+
+### New York City Flights
+\
+
+I will be using packages called `tidyverse` and `nycflights13`.
+```{r, message = FALSE}
+library(tidyverse)
+library(nycflights13)
+```
+\
+
+**a) Three Major NYC Airports**
+
+Let's take a look at the data frame `airports` first.  
+```{r}
+airports
+```
+It contains 1458 rows and 8 columns.  
+Notice that there is _faa_ column that contains airport codes and _name_ column that contains airport names.  
+\
+
+I am given that the three major airports have the codes, EWR, JFK, LGA.  
+I use the filter() function to pick out the rows with corresponding airport codes from `airports`.  
+Then, I select the _faa_ and _name_ columns which are the only necessary information.  
+```{r}
+airports %>% filter(faa == "EWR" | faa == "JFK" | 
+                      faa == "LGA") %>% select(faa, name)
+```
+Hence, the names of the three major NYC airports are Newark Liberty Intl, John F Kennedy Intl, and La Guardia.  
+\
+
+**b) Number of Flights From Three Major Airports**
+
+Take a look at the data frame `flights`.  
+```{r}
+flights
+```
+There are 336776 rows and 19 columns.  
+\
+
+Since I am not sure if the data frame contains only the three major airports, I use the filter() function.  
+Then, I save it to a new variable called `major`.  
+```{r}
+flights %>% filter(origin == "EWR" | origin == "JFK" | 
+                      origin == "LGA") -> major
+major
+```
+Note:  
+Turns out, the `flights` only contains the required airports.  
+\
+
+I count the number of flights from each airports (origin).  
+```{r}
+major %>% count(origin)
+```
+There were 120835 flights that departed from EWR airport.  
+There were 111279 flights that departed from JFK airport, and 104662 flights that departed from LGA airport.  
+\
+
+**c) Top Five Common Destination Airports**
+
+The question asks to display the names of the five most common destination airports for flights, along with the number of flights.  
+First, I take the data frame `flights` and count the number of flights for each destinations.  
+Then, I slice the first five rows, where the data is arranged from greatest to least number of flights.  
+Next, I join such data with the names of each destination from the data frame `airport` that matches with the airport code.  
+I only selected the first three columns which are necessary.  
+```{r}
+flights %>% count(dest) %>%
+  slice_max(order_by = n, n = 5) %>% 
+  left_join(airports, by = c("dest" = "faa")) %>%
+  select(1:3)
+```
+The top five common destination airports are:  
+
+  1. Chicago Ohare Intl (ORD)
+  2. Hartsfield Jackson Atlanta Intl (ATL)
+  3. Los Angeles Intl (LAX)
+  4. General Edward Lawrence Logan Intl (BOS)
+  5. Orlando Intl (MCO)
+\
+\
+
+**d) Creating New Data Frame for Flights**
+
+First, I must filter out any rows with missing dep_delay values.  
+Then, I arrange the data frame in alphabetical order of the origin for a better view.  
+I used the inner_join() function because I only want rows with matching time_hour and origin values between `weather` and the `flights`.  
+Finally, I select the columns I want to see, which are _origin_, _flight_, _dep_delay_, _time_hour_, and _visib_.  
+I crated a new data frame called `FlightsWeather` that contains its departure delay, and the number of miles of visibility for each flight.   
+```{r}
+flights %>% 
+  filter(!is.na(dep_delay)) %>%
+  arrange(origin) %>%
+  inner_join(weather, by = c("time_hour" = "time_hour",
+                             "origin" = "origin")) %>% 
+  select(origin, flight, dep_delay, time_hour, visib) -> FlightsWeather
+```
+\
+
+The data frame `FlightsWeather` is displayed below.  
+```{r}
+FlightsWeather
+```
+There are 326993 rows with five columns of my choice.  
+\
+
+**e) Visibility vs. Departure Delay**
+
+I will be using the scatterplot since I have two quantitative variables that I need to compare.  
+I am comparing the number of miles of visibility to its departure delay.  
+Since I am using a large sample, overplotting is expected.  
+Hence, I changed the transparency using the _alpha_ parameter and added color to each origin groups.  
+```{r}
+ggplot(FlightsWeather, aes(x = visib, y = dep_delay)) + 
+  geom_point(alpha = 0.1, aes(color = origin)) + 
+  geom_smooth(method = "lm")
+```
+It is very hard to see the general trend with big range of y-axis.  
+\
+
+I decided to ignore some of the outliers on the very top and shrink the y-axis so that the points are more spread out.  
+The code remains the same, except for the 'ylim()' function to change the axis range.  
+```{r}
+ggplot(FlightsWeather, aes(x = visib, y = dep_delay)) + 
+  geom_point(alpha = 0.1, aes(color = origin)) + 
+  geom_smooth(method = "lm") + ylim(0, 600)
+```
+Although, it is still hard see, I can somewhat observe that the line is going downwards.  
+\
+
+Let's take a look at each origin groups.  
+```{r}
+ggplot(FlightsWeather, aes(x = visib, y = dep_delay)) + 
+  geom_point(alpha = 0.1) + facet_wrap(~ origin, scales = "free") +
+  geom_smooth(method = "lm")
+```
+Very hard to see, but each origin groups have downward line of best fit.  
+\
+
+Generally, I can say that there is slightly more delay when the visibility is lower due to weather.  
+Other way around, there is slightly less delay when the visibility is higher.  
+However, the relationship is very weak.  
+Hence, the number of miles of visibility and the departure delay has a very weak negative correlation.  
+But, as we observed in previous graphs, there are many outliers and points are all over the place.  
+For example, sometimes, there is more departure delay even when the visibility is high.  
+Therefore, I must say that the departure delay has multiple factors to it, including the number of miles of visibility.  

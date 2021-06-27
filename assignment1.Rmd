@@ -1,0 +1,73 @@
+---
+title: "STAC33 Assignment 1"
+output: html_notebook
+---
+  
+I will be using the package called `tidyverse`.
+```{r, message=FALSE}
+library(tidyverse)
+```
+
+# 1. Rainfall Data for Davis, California  
+
+a) Reading in Data and Displaying  
+When I open the given text file, I observed that the values are separated by a space, hence I used read_delim function.  
+For the best, I defined the link into a variable first, rather than reading in directly from the URL.  
+The data set `rainfall` is created and displayed below.
+```{r}
+url <- "http://ritsokiguess.site/STAC32/rainfall.txt"
+rainfall <- read_delim(url, " ")
+rainfall
+```
+This data table has 47 rows and 2 columns.  
+\
+
+b) Scatterplot: Rainfall vs. Year  
+I used the scatterplot because there are two quantitative values.  
+By using scatterplot, I can also like to investigate the relationship between the two variables.
+```{r, fig.height=3.4}
+ggplot(rainfall, aes(x = Year, y = Rainfall)) + 
+  geom_point() + geom_smooth(method = "lm")
+```
+\
+
+c) Regression Line  
+I have added the regression line on the scatterplot. It shows that there is a positive, linear with very weak effect between the variables. It is evident that the points are all over the place, which means there is a very weak relationship between the two variables. The line going upward in a linear shape indicates that there is a positive relationship. As the year progresses, the rainfall measured in inches also increases.  
+\
+
+# 2. Laptop as Learning Aid for New Jersey Students  
+
+a) Reading in Data and Displaying  
+When I open the given text file, I observed that the values are separated by using more than one space, and the spaces between the values are not constant. However, the data is aligned in columns, so I used read_table function.  
+For the best, I defined the link into a variable first, rather than reading in directly from the URL.  
+
+i. As stated in the question, since there were 20 students who were given laptops and 27 students who weren't given laptops, there are total of 47 students in the class. This number matches the number of rows of `score` hence the number of observation is correct.    
+ii. There should be two types of columns; one in characters which indicates whether the student has the laptop or not, and one in numbers indicating the score they received in algebra. Since there are two columns of `algebra_scores`, <chr> and <dbl>, there are correct types of columns.  
+The data set `algebra_scores` is created and displayed below.
+```{r}
+url <- "http://ritsokiguess.site/STAC33/algebra.txt"
+algebra_scores <- read_table(url)
+algebra_scores
+```
+There are 47 rows and 2 columns.  
+\
+
+b) Boxplot: Algebra Score by Learning Aid  
+I used the boxplot because there is one quantitative variable and one categorical variable.  
+```{r}
+ggplot(algebra_scores, aes(x = laptop, y = score)) + geom_boxplot()
+```
+\
+
+c) Observation  
+I noticed that there is one outlier for students without laptop and two outliers for students with laptop. Generally, the boxplot shows that the students with the laptop scores higher in algebra than the students without the laptop. I know this because the black line, which indicates the median, is higher in students with laptop. The maximum and minimum are all higher for students with laptop. In addition, the Q1 and Q3 are higher for student without laptop. The distribution for students without the laptop is left-skewed, whereas the distribution for students with the laptop is right-skewed. In all, it can be further concluded that having access to learning aid like laptop is indeed very helpful with achieving higher algebra score.  
+\
+
+d) Median and IQR of Students  
+The summarized data below shows that the median is higher in students with laptop than students without the laptop and the IQR is higher in students without laptop. This is the same as what was observed earlier with the boxplot.
+```{r}
+algebra_scores %>% group_by(laptop) %>%
+  summarize(median = median(score))
+algebra_scores %>% group_by(laptop) %>%
+  summarize(iqr = IQR(score))
+```

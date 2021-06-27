@@ -1,0 +1,115 @@
+---
+title: "STAC33 Assignment 6"
+author: Hyebeen Jung, 1004346512
+output: html_notebook
+---
+\
+
+### Plant Kudzu, Is It Beneficial for Bones?
+
+**a) Observing the Data File**
+
+The data file has two types of columns: treatment and bone_mineral_density.  
+There are control, low_dose, and high_dose rows with multiple values of bone density of rats measured in milligrams per square aligned tibble-like.  
+Also, the treatment group names are only recorded when it changes.  
+The problem I have with this data file is that the columns, under column name bone_mineral_density, have multiple numbers separated by a space and wrapped like a table when a table cell can only contain single value.  
+\
+
+**b) Tidying and Displaying the Data**
+
+This is the package I need for this assignment.  
+```{r, message = FALSE}
+library(tidyverse)
+```
+\
+
+As suggested in the assignment, I use the read_table function.  
+I defined the link into a variable first, rather than reading in directly from the URL.  
+The data `kudzu` is created and displayed below.  
+```{r}
+url <- "http://ritsokiguess.site/STAC32/isoflavones.txt"
+kudzu <- read_table(url)
+kudzu
+```
+Notice that the data is very odd and messy.  
+I must perform few functions to tidy the data.  
+I have decided to keep the headers in this assignment.  
+\
+
+First, I use the separate_rows function to separates the values and place each one in its own row.  
+The separator for delimiting the collapsed values is a space in this case.  
+After this step, there will be some cells with empty values.  
+I use the na_if function with empty string ("") as the parameter to replace all empty cells with _NA_.  
+Finally, I must fill in missing data from top to bottom using the fill function with the column name parameter.  
+I save the modified version to a new dataframe and call it `tidy_kudzu`.  
+```{r}
+separate_rows(kudzu, bone_mineral_density, sep = " ") %>%
+  na_if("") %>% fill(treatment) -> tidy_kudzu
+```
+\
+
+Here is how the data is sorted out.  
+```{r}
+tidy_kudzu
+```
+There are now 45 rows, 15 each per treatment group, with 2 columns, as required.  
+\
+
+However, notice that the bone_mineral_density column stores character values.  
+Hence, I must also convert this into numerical form so that the dataframe is suitable for making graphs.  
+I use the as.numeric function to convert only the second column of `tidy_kudzu` dataframe.  
+```{r}
+tidy_kudzu$bone_mineral_density <- as.numeric(tidy_kudzu$bone_mineral_density)
+tidy_kudzu
+```
+Notice that the second column has been successfully modified to a numerical column.  
+\
+
+**c) Plotting Data**
+
+Let's see if ANOVA test is suitable to compare the bone mineral density for different treatments.  
+I first make a boxplot and interpret the result.  
+```{r}
+ggplot(tidy_kudzu, aes(x = treatment, y = bone_mineral_density)) +
+  geom_boxplot()
+```
+Notice that the high_dose treatment group has different spread.  
+The control group seems to be skewed to the right.  
+Generally, the high_dose treatment group has higher median compared to the rest of the groups.  
+Based on this boxplot, the decision is this.  
+The statistician on this study should **not** consider using an ordinary variance test for various reasons.  
+The distribution is believed to be not normal, have unequal spreads, and the sample sizes are small for each treatment groups to apply the Central Limit Theorem.  
+\
+
+**Additional Graphs**
+
+We can look at more graphs for more solid answer.  
+```{r}
+ggplot(tidy_kudzu, aes(sample = bone_mineral_density)) + 
+  stat_qq() + stat_qq_line()
+```
+Notice that both low points and high points are too high.  
+This indicates that the distribution is skewed to the right.  
+Hence, it indicates that ordinary variance test could be problematic.  
+\
+
+By facetting, we can observe that the control group is the issue.  
+```{r}
+ggplot(tidy_kudzu, aes(sample = bone_mineral_density)) + 
+  stat_qq() + stat_qq_line() + facet_wrap(~ treatment)
+```
+\
+
+**d) Which Analysis Then?**
+
+Since there are three different sample groups, and the distribution is not normal enough, the Mood's Median test would be suitable for this study to compare whether there exists a difference in bone mineral density with different types of treatments.  
+\
+\
+
+**Reference**
+
+I have mainly used the 'help' tool within the RStudio program itself.  
+
+1. Shork, J. (2020). "Convert Data Frame Column to Numeric in R (2 Examples) | Change Factor, Character & Integer". Retrieved March 11, 2021 from https://statisticsglobe.com/convert-data-frame-column-to-numeric-in-r
+
+2. Wickham, H. (2016). "tidyr 0.5.0". Retrieved March 11, 2021 from https://blog.rstudio.com/2016/06/13/tidyr-0-5-0/
